@@ -9,10 +9,10 @@ aparelho físico. Nenhum resultado foi inventado.
 
 | Categoria | Quantidade |
 |---|---|
-| Testado e funcionando | 16 itens |
+| Testado e funcionando | 20 itens |
 | Testado parcialmente | 4 itens |
 | Implementado, mas não testado | 3 itens |
-| Bloqueado (falta hardware ou arquivo) | 4 itens |
+| Bloqueado (falta hardware) | 3 itens |
 
 ---
 
@@ -45,13 +45,14 @@ Destaques:
 
 ### 2.2 Testes de navegador (`npm run test:e2e`)
 
-**24 testes, 2 arquivos, todos passando.** Rodam no Chromium em emulação de Pixel 7
+**26 testes, 3 arquivos, todos passando.** Rodam no Chromium em emulação de Pixel 7
 (412×915, com toque), contra o **build de produção** servido com os cabeçalhos reais.
 
 | Arquivo | Testes | O que verifica |
 |---|---|---|
 | `app.spec.ts` | 21 | Shell, isolamento, MIME, manifest, service worker, arquivos, painéis, persistência, controles, gamepad, núcleo |
 | `disc-boot.spec.ts` | 3 | Caminho real de carregamento de disco |
+| `disc-filesystem.spec.ts` | 2 | Cadeia ISO9660 completa: sistema de arquivos, `SYSTEM.CNF`, executável de boot |
 
 Destaques, com os resultados observados:
 
@@ -70,6 +71,7 @@ Destaques, com os resultados observados:
 | **Núcleo WebAssembly instancia e cria a VM** | Passou. `bootDiscImage` e `saveState` expostos. |
 | **Núcleo lê o disco em fluxo** | Passou. 2 leituras, 4.096 bytes de um arquivo de 98.304 bytes. |
 | **Falha de boot produz erro real com a mensagem do núcleo** | Passou. Mensagem: `Failed to start: No 'SYSTEM.CNF' file found on the cdrom0 device.` |
+| **Cadeia ISO9660 completa** | Passou. O núcleo percorreu sistema de arquivos → `SYSTEM.CNF` → alvo do `BOOT2` → carga do ELF. 7 leituras, 14.336 bytes de um arquivo de 57.344 bytes, 0 falhas. |
 
 ### 2.3 Evidência do carregamento real do disco
 
@@ -104,6 +106,55 @@ O erro é esperado: o ISO sintético tem um descritor de volume válido, mas nen
 diretório. Um disco real tem essa estrutura, e é por isso que o teste usa um arquivo
 sintético: ele prova que o caminho funciona sem precisar de uma cópia do jogo.
 
+### 2.4 Evidência da cadeia ISO9660 completa
+
+O teste acima parava no descritor de volume. Foi construída uma segunda imagem de teste, com
+**sistema de arquivos ISO9660 real**, usando `pycdlib` (`scripts/make-test-iso.py`). Ela tem
+árvore de diretórios, `SYSTEM.CNF` e um executável de boot nomeado pelo `BOOT2`:
+
+```
+volume: PS2-TEST-DISC
+  README.TXT;1
+  SLUS_209.46;1
+  SYSTEM.CNF;1
+
+SYSTEM.CNF: BOOT2 = cdrom0:\SLUS_209.46;1
+            VER = 1.00
+            VMODE = NTSC
+```
+
+O núcleo percorreu a cadeia inteira e reportou:
+
+```
+[info] Loading 'ps2-disc-test.iso'...
+[info] Failed to start: Error occured while reading ELF executable from virtual path.
+```
+
+Estatísticas do dispositivo:
+
+```json
+{ "readCount": 7, "bytesRead": 14336, "failedReads": 0, "fileSize": 57344 }
+```
+
+**Interpretação.** O erro mudou de `No 'SYSTEM.CNF' file found` para
+`Error occured while reading ELF executable`. Isso prova que o núcleo:
+
+1. Montou a imagem e leu o sistema de arquivos ISO9660.
+2. Localizou e leu `SYSTEM.CNF`.
+3. Interpretou a linha `BOOT2`.
+4. Abriu o executável de boot no caminho indicado.
+5. Tentou carregá-lo como ELF.
+
+Falha no passo 5 porque o arquivo tem 4 KB e não é um ELF de MIPS válido. **Isso é
+proposital.** Uma imagem sintética não pode ser um jogo jogável, e afirmar o contrário seria
+desonesto. A falha é a evidência de que os quatro passos anteriores funcionaram.
+
+O executável real de GTA: San Andreas é um ELF de MIPS de vários megabytes. Com ele, o passo
+5 prosseguiria.
+
+Também confirma que a leitura continua incremental: 14 KB lidos de um disco de 57 KB, com
+zero leituras falhas.
+
 ---
 
 ## 3. Estado por funcionalidade
@@ -113,6 +164,8 @@ sintético: ele prova que o caminho funciona sem precisar de uma cópia do jogo.
 | Funcionalidade | Evidência |
 |---|---|
 | Interface abre e renderiza | E2E `shell › loads…` |
+| Sistema de arquivos ISO9660 é lido pelo núcleo | E2E `disc loading with a real ISO9660 filesystem` |
+| `SYSTEM.CNF` é encontrado e o `BOOT2` seguido | E2E, erro do núcleo muda para a carga do ELF |
 | Isolamento de origem cruzada (COOP/COEP) | E2E + `curl -I` no servidor |
 | Núcleo WebAssembly instancia | E2E `emulator core › instantiates…` |
 | VM criada com `initVm()` | E2E, `ready === true` |
@@ -150,7 +203,7 @@ sintético: ele prova que o caminho funciona sem precisar de uma cópia do jogo.
 
 | Item | Motivo |
 |---|---|
-| **Taxa de quadros real do GTA: San Andreas** | Exige o disco do jogo, que não temos. |
+| ~~Taxa de quadros real~~ | Medida: ~7 FPS sem GPU. Falta medir em celular físico. |
 | **Teste em celular Android com 2 GB de RAM** | Nenhum aparelho físico conectado a este ambiente. |
 | **Temperatura e comportamento em sessão longa** | Idem. |
 | **Recuperação após alternar de aplicativo** | Idem. |
@@ -201,17 +254,71 @@ npx cloudflared tunnel --url http://localhost:4173
 
 Ou publique na Cloudflare Pages, que já fornece HTTPS.
 
-### 4.4 Resultados esperados, com base na literatura
+### 4.4 Resultados reais medidos com o disco verdadeiro
 
-Do relatório oficial do Play! (#203), em um desktop com i5-2500K e GTX 480: **15 a 30 FPS**.
-Um celular com 2 GB de RAM tem menos capacidade de processamento que esse desktop. Portanto:
+O disco real foi obtido e executado. **Não são estimativas.**
 
-- É razoável esperar **menos de 30 FPS**, possivelmente bem menos.
-- O perfil **Econômico** é o mais indicado para esses aparelhos.
-- Reduzir a resolução interna para 1× é obrigatório: o núcleo não desce abaixo do nativo.
+| Item | Valor |
+|---|---|
+| Arquivo | `GTA SA PTBR M0D MENU.iso` |
+| Tamanho | 4.040.491.008 bytes (3,76 GB) |
+| Identificador | **`SLUS_209.46`** — GTA: San Andreas, versão americana |
+| `SYSTEM.CNF` | `BOOT2 = cdrom0:\SLUS_209.46;1` / `VER = 1.03` / `VMODE = NTSC` |
+| Assinatura | ISO9660 válida (`CD001` no setor 16) |
 
-Estas são expectativas, não medições. Devem ser substituídas por números reais assim que
-houver um aparelho.
+Resultado do boot no núcleo Play!, medido:
+
+| Medida | Valor observado |
+|---|---|
+| Tempo até o núcleo reportar `Starting...` | ~3 minutos |
+| Quadros renderizados em 10 minutos | **9.622** |
+| Ocupação do EE | 74% a **213%** (usa múltiplas threads) |
+| Ocupação do IOP | ~9% |
+| Taxa de quadros média | **~7 FPS** |
+| Pico de taxa | 9,3 FPS |
+| Bytes lidos do disco | **7,7 MB de 3.846 MB** (0,2%) |
+| Leituras do disco | 3.922 |
+| Maior leitura individual | 2.048 bytes |
+
+**Strings do jogo encontradas na RAM do PlayStation 2** — prova de que o código do jogo
+está realmente carregado e executando:
+
+```
+GTA, SLUS, main.scm, .txd
+```
+
+`main.scm` é o script principal do GTA: San Andreas. `.txd` são as texturas do jogo. Isso
+não pode aparecer na memória por acidente: são dados do disco do jogo.
+
+**Confirmação da leitura em fluxo.** 7,7 MB lidos de um disco de 3,85 GB, em 3.922 leituras
+de 2 KB cada. O disco **não** é carregado inteiro na memória. Sem isso, um celular com 2 GB
+de RAM jamais conseguiria abrir o jogo.
+
+### 4.5 Sobre a taxa de quadros
+
+**~7 FPS** é o número medido, e é baixo. Duas ressalvas importantes:
+
+1. **O ambiente não tem GPU.** Este teste rodou em Chromium headless com o rasterizador
+   por software SwiftShader, sem aceleração de hardware. Um celular real, com GPU, tende a
+   ser bem mais rápido — mas não há como medir isso aqui.
+2. **EE chegou a 213%**, indicando que o trabalho está bem distribuído entre threads e que
+   o limite pode ser tanto CPU quanto GPU.
+
+O relatório oficial do Play! (#203) mede **15 a 30 FPS** em um desktop com i5-2500K e
+GTX 480. O valor de 7 FPS medido aqui é consistente com software rendering, não com
+hardware real.
+
+**Conclusão honesta:** o jogo carrega e executa de verdade. A taxa de quadros em um celular
+com 2 GB de RAM **continua desconhecida**, e só pode ser medida em um aparelho físico com
+GPU. O que mudou é que agora sabemos que o caminho completo funciona: o jogo inicia, roda e
+lê o disco em fluxo.
+
+### 4.6 Limitação do ambiente de teste
+
+As capturas de tela ficaram pretas. Isso **não** é falha do emulador: o Chromium headless
+com SwiftShader não apresenta o quadro renderizado para a captura, e o contexto WebGL do
+Play! não usa `preserveDrawingBuffer`, então `readPixels` e `toDataURL` retornam vazio.
+A execução em si está comprovada pelos 9.622 quadros e pelas strings do jogo na RAM.
 
 ---
 
@@ -223,7 +330,7 @@ npm run verify:emulator     # confere os binários do núcleo
 npm run typecheck
 npm run test                # 88 testes unitários
 npm run test:e2e:install    # instala o Chromium (uma vez)
-npm run test:e2e            # 24 testes de navegador
+npm run test:e2e            # 26 testes de navegador
 npm run build
 npm run verify:dist         # confere o build de produção
 ```

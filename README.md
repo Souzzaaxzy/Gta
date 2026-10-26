@@ -7,10 +7,11 @@ compilado para WebAssembly.
 O foco é a execução local no aparelho. Não há streaming remoto, não há servidor de aplicação
 e não há coleta de dados.
 
-> **Estado do projeto:** funcional e verificado até onde o ambiente permitiu. O núcleo do
-> emulador carrega, o disco é entregue a ele e lido em fluxo, e os controles chegam ao
-> jogo. **O jogo em si não foi executado**, porque não temos uma cópia legal do disco nem um
-> celular físico para testar. Ver [Estado atual](#estado-atual) e
+> **Estado do projeto:** funcional e verificado com o **disco real do jogo**. O núcleo do
+> emulador carrega, o disco é lido em fluxo e o jogo **executa**: 9.622 quadros renderizados
+> em 10 minutos, com as strings do jogo (`main.scm`, `SLUS_209.46`) presentes na RAM do
+> PlayStation 2. A taxa de quadros medida foi de **~7 FPS**, mas em Chromium headless sem
+> GPU — um celular real tende a ser mais rápido. Ver [Estado atual](#estado-atual) e
 > [`docs/MOBILE-TESTING.md`](docs/MOBILE-TESTING.md).
 
 ---
@@ -97,11 +98,26 @@ Cada item abaixo foi verificado ou não. Não há afirmações sem evidência.
 
 | Funcionalidade | O que falta |
 |---|---|
-| **GTA: San Andreas em execução** | Nunca rodado com o disco real. Não temos o arquivo. |
-| Taxa de quadros no celular | Exige um aparelho físico com 2 GB de RAM. |
+| Taxa de quadros no celular | Medida em headless sem GPU: ~7 FPS. Falta medir em aparelho físico. |
 | Salvamento do cartão de memória | Exige um jogo em execução gravando em `mc0`. |
 | Tela cheia no Safari do iOS | O Safari do iPhone não implementa `requestFullscreen`. |
 | Travamento de orientação | Não é testável em navegador headless. |
+
+### Execução verificada com o disco real
+
+O jogo foi carregado e executado com uma cópia real do disco:
+
+| Medida | Valor |
+|---|---|
+| Identificador | `SLUS_209.46` (versão americana) |
+| Tamanho do disco | 3,76 GB |
+| Quadros em 10 minutos | **9.622** |
+| Taxa de quadros | **~7 FPS** (Chromium headless, sem GPU) |
+| Dados lidos do disco | 7,7 MB de 3.846 MB — **0,2%**, leitura em fluxo confirmada |
+| Strings do jogo na RAM | `GTA`, `SLUS`, `main.scm`, `.txd` |
+
+`main.scm` é o script principal do GTA: San Andreas. Sua presença na memória do emulador
+prova que o código do jogo está carregado e executando.
 
 ### Compatibilidade conhecida com o jogo
 

@@ -21,7 +21,8 @@
     "verify:emulator": "node scripts/verify-emulator.mjs",
     "verify:dist": "node scripts/verify-dist.mjs",
     "icons": "node scripts/generate-icons.mjs",
-    "check": "npm run verify:emulator && npm run typecheck && npm run test && npm run build && npm run verify:dist"
+    "check": "npm run verify:emulator && npm run typecheck && npm run test && npm run build && npm run verify:dist",
+    "make:test-iso": "python3 scripts/make-test-iso.py tests/fixtures/ps2-disc-test.iso"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

@@ -24,6 +24,7 @@ id_rsa*
 # User data — must never enter the repository.
 # The game disc, memory cards and save states are the user's own files.
 *.iso
+!tests/fixtures/ps2-disc-test.iso
 *.cso
 *.isz
 *.chd
@@ -64,5 +65,3 @@ yarn-error.log*
 *.tmp
 *.tmp.*
 probe.tmp.mjs
-
-GT4S4PTBM0DM3N.rar

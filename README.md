@@ -87,6 +87,7 @@ Cada item abaixo foi verificado ou não. Não há afirmações sem evidência.
 | Disco lido em fluxo, sem carga total | Teste: 4 KB lidos de um arquivo de 96 KB |
 | Falha de boot reportada com a mensagem real do núcleo | Teste automatizado |
 | Validação de formatos ISO, CSO, ISZ, CHD, ELF, CUE, MDS | 19 testes unitários |
+| **Cadeia ISO9660 completa lida pelo núcleo** | Teste: sistema de arquivos → `SYSTEM.CNF` → alvo do `BOOT2` → carga do ELF |
 | Controles de toque geram os códigos de tecla corretos | Teste automatizado |
 | Controle físico detectado e mapeado | Teste automatizado |
 | Configurações sobrevivem a recarregar a página | Teste automatizado |
@@ -230,7 +231,7 @@ Cloudflare usará.
 | `npm run preview` | Serve `dist/` localmente |
 | `npm run typecheck` | Verificação de tipos |
 | `npm run test` | 88 testes unitários |
-| `npm run test:e2e` | 24 testes de navegador |
+| `npm run test:e2e` | 26 testes de navegador |
 | `npm run verify:emulator` | Verifica os binários do emulador |
 | `npm run verify:dist` | Verifica o build de produção |
 | `npm run check` | Tudo acima, em ordem |
@@ -680,7 +681,7 @@ A pesquisa completa está em
 
 ```bash
 npm run test        # 88 testes unitários
-npm run test:e2e    # 24 testes de navegador
+npm run test:e2e    # 26 testes de navegador
 npm run check       # tudo, incluindo build e verificação
 ```
 
@@ -696,7 +697,7 @@ npm run check       # tudo, incluindo build e verificação
 | Caminhos seguros em importações | 9 |
 | Barramento de eventos | 6 |
 | Dispositivo de disco em fluxo | 7 |
-| Navegador (E2E) | 24 |
+| Navegador (E2E) | 26 |
 
 ### Testes que provam a integração real
 
@@ -708,6 +709,11 @@ Três testes de navegador verificam o caminho crítico:
    arquivo de 96 KB, em vez de carregá-lo inteiro.
 3. **A falha de boot é reportada.** Confirma que a mensagem real do núcleo
    (`Failed to start: No 'SYSTEM.CNF' file found on the cdrom0 device.`) chega à interface.
+4. **A cadeia ISO9660 completa é percorrida.** Com uma imagem de teste que tem sistema de
+   arquivos real (`scripts/make-test-iso.py`), o núcleo monta o disco, encontra o
+   `SYSTEM.CNF`, segue a linha `BOOT2` e abre o executável de boot. Ele então falha ao
+   carregá-lo como ELF, porque o arquivo de teste não é um jogo — e **essa falha é a prova
+   de que os quatro passos anteriores funcionaram**.
 
 Resultados completos e o plano de teste em celular físico:
 [`docs/MOBILE-TESTING.md`](docs/MOBILE-TESTING.md).

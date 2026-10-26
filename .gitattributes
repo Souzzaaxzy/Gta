@@ -3,14 +3,18 @@
 *.wasm binary
 *.png binary
 *.ico binary
+
 # Normalize line endings for text files.
 * text=auto eol=lf
+
 # The bundled third-party license notice is kept byte-for-byte as shipped, so the copyright
 # notice required by BSD-2-Clause is retained verbatim.
 public/emulator/LICENSE-PLAY.txt -text -diff
 public/emulator/patches/play-lecteur-ps2.patch -text -diff
+
 # Keep the generated lockfile stable and diff-friendly.
 package-lock.json text eol=lf -diff
+
 # Documentation and scripts are text.
 *.md text eol=lf
 *.ts text eol=lf
@@ -19,6 +23,10 @@ package-lock.json text eol=lf -diff
 *.css text eol=lf
 *.html text eol=lf
 *.yml text eol=lf
+
 # The patch file must keep its exact whitespace to apply cleanly.
 *.patch text eol=lf -whitespace
+
+# Git LFS: the game disc is stored as four parts, outside the normal Git object store.
+# Only the pointers live in the repository; the data stays on the LFS server.
 GT4S4PTBM0DM3N.part* filter=lfs diff=lfs merge=lfs -text

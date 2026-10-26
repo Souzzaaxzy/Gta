@@ -91,7 +91,7 @@ Cada item abaixo foi verificado ou não. Não há afirmações sem evidência.
 | Controles de toque geram os códigos de tecla corretos | Teste automatizado |
 | Controle físico detectado e mapeado | Teste automatizado |
 | Configurações sobrevivem a recarregar a página | Teste automatizado |
-| Disco é recuperado do IndexedDB após recarregar | Teste automatizado |
+| Disco pequeno é recuperado do IndexedDB após recarregar | Teste automatizado (ISO de 57 KB) |
 | Service worker e pré-cache | Teste automatizado |
 | Build de produção | `npm run check` |
 
@@ -738,6 +738,9 @@ Resultados completos e o plano de teste em celular físico:
    e o navegador só recebe o arquivo que você seleciona. Use `.iso` ou `.chd`.
 9. **Tela cheia limitada no Safari do iOS.**
 10. **Armazenamento pode ser removido pelo navegador** sob pressão. Faça backups.
+11. **O disco precisa ser escolhido a cada sessão.** Medido: o navegador recusa gravar mais
+    de ~832 MB, apesar de informar 10 GB de cota. Um disco de 3,76 GB não pode ser
+    guardado. Ver `docs/MOBILE-TESTING.md` §4.6.
 
 ### Não validado
 

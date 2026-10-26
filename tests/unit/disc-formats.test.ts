@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateDiscFile } from '@/files/disc-formats';
 import { formatFromExtension, describeFormat, ACCEPTED_EXTENSIONS } from '@/files/disc-formats';
+import { isQuotaError } from '@/files/game-files';
 
 /** Build a File whose bytes we control. */
 function makeFile(name: string, bytes: Uint8Array, type = ''): File {
@@ -142,5 +143,20 @@ describe('validateDiscFile', () => {
     const result = await validateDiscFile(makeFile('game.cue', text));
     expect(result.valid).toBe(true);
     expect(result.issues.some((issue) => issue.message.includes('.bin'))).toBe(true);
+  });
+});
+
+describe('isQuotaError', () => {
+  it('reconhece QuotaExceededError', () => {
+    expect(isQuotaError(new DOMException('cheio', 'QuotaExceededError'))).toBe(true);
+  });
+
+  it('reconhece mensagem de cota em texto', () => {
+    expect(isQuotaError(new Error('exceeded its storage quota'))).toBe(true);
+  });
+
+  it('nao confunde outros erros', () => {
+    expect(isQuotaError(new Error('arquivo invalido'))).toBe(false);
+    expect(isQuotaError(new DOMException('abortado', 'AbortError'))).toBe(false);
   });
 });

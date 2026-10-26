@@ -313,7 +313,32 @@ com 2 GB de RAM **continua desconhecida**, e só pode ser medida em um aparelho 
 GPU. O que mudou é que agora sabemos que o caminho completo funciona: o jogo inicia, roda e
 lê o disco em fluxo.
 
-### 4.6 Limitação do ambiente de teste
+### 4.6 Limite real de armazenamento (descoberto por teste)
+
+Tentei guardar o disco de 3,76 GB no navegador, para que o usuário não precise escolher o
+arquivo novamente. **Não funciona, e a documentação anterior estava errada.**
+
+| Tentativa | Resultado |
+|---|---|
+| IndexedDB, `put()` do `File` | `QuotaExceededError` imediato |
+| OPFS, gravação em blocos de 64 MB | `QuotaExceededError` em **832 MB** |
+
+O navegador informa uma cota de 10 GB, mas recusa a gravação bem antes disso. Medido:
+
+```
+OPFS parou em: 832 MB | QuotaExceededError
+cota informada: 10.00 GB
+```
+
+**Consequência prática:** o disco **não pode** ser guardado entre sessões. O usuário precisa
+selecionar o arquivo a cada vez que abre o site. Isso é uma limitação do navegador, não do
+emulador.
+
+O README afirmava que "o disco é recuperado do IndexedDB após recarregar". Isso é verdade
+para arquivos pequenos, e é o que o teste automatizado cobre (uma ISO de 57 KB). Para um
+disco real de vários gigabytes, **não vale**. A afirmação foi corrigida.
+
+### 4.7 Limitação do ambiente de teste
 
 As capturas de tela ficaram pretas. Isso **não** é falha do emulador: o Chromium headless
 com SwiftShader não apresenta o quadro renderizado para a captura, e o contexto WebGL do

@@ -81,13 +81,30 @@ export class GameFileManager {
       return validation;
     }
 
+    // A PlayStation 2 disc is several gigabytes and browsers cap per-origin storage far
+    // below that. Checking first turns a slow failure into an immediate, accurate message.
+    const free = await availableStorageBytes();
+    if (free !== null && free < file.size) {
+      this.error =
+        `O disco funciona nesta sessão, mas não cabe no armazenamento do navegador ` +
+        `(precisa de ${(file.size / 1073741824).toFixed(1)} GB, há ${(free / 1073741824).toFixed(1)} GB). ` +
+        `Será preciso escolher o arquivo de novo ao reabrir o site.`;
+      return validation;
+    }
+
     try {
       await this.persist(file, validation);
     } catch (persistError) {
-      // Persisting is best-effort: the disc still works for this session.
-      this.error = `O disco foi montado, mas não pôde ser guardado para a próxima sessão: ${
-        persistError instanceof Error ? persistError.message : String(persistError)
-      }`;
+      // Persisting is best-effort: the disc still works for this session. A quota failure
+      // is expected for real discs (several gigabytes), so say so plainly instead of
+      // leaving a bare exception name in the interface.
+      const quota = isQuotaError(persistError);
+      this.error = quota
+        ? `O disco funciona nesta sessão, mas o navegador não tem espaço para guardá-lo. ` +
+          `Discos de vários GB não cabem: será preciso escolher o arquivo de novo ao reabrir o site.`
+        : `O disco foi montado, mas não pôde ser guardado para a próxima sessão: ${
+            persistError instanceof Error ? persistError.message : String(persistError)
+          }`;
     }
     return validation;
   }
@@ -168,4 +185,32 @@ export async function fingerprintOf(file: File): Promise<string> {
 
 export function fileExtension(file: File): string {
   return extensionOf(file.name);
+}
+
+/**
+ * True when the browser refused a write because it ran out of storage quota.
+ *
+ * This matters because it is the *normal* outcome for a real disc: a PlayStation 2 image
+ * is several gigabytes, and browsers cap per-origin storage well below that. Measured in
+ * Chromium: OPFS stops at ~832 MB even when `storage.estimate()` reports a 10 GB quota.
+ */
+export function isQuotaError(error: unknown): boolean {
+  if (error instanceof DOMException) {
+    return error.name === 'QuotaExceededError' || error.code === 22;
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  return /quota|exceeded|storage/i.test(message);
+}
+
+/** Storage estimate, used to warn before attempting a write that cannot succeed. */
+export async function availableStorageBytes(): Promise<number | null> {
+  try {
+    const estimate = await navigator.storage?.estimate?.();
+    if (!estimate) return null;
+    const quota = estimate.quota ?? 0;
+    const usage = estimate.usage ?? 0;
+    return Math.max(0, quota - usage);
+  } catch {
+    return null;
+  }
 }

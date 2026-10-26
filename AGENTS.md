@@ -63,16 +63,6 @@ npm run verify:emulator
 npm run typecheck
 ```
 
-## Regras do projeto
-
-- Não incluir jogo/BIOS/arquivo proprietário. Nunca.
-- Não usar `localStorage` para dados grandes (disco, cartão, estados) → IndexedDB/OPFS.
-- Não prometer o que o emulador não faz (ex.: 30 fps garantido, sub-nativo, auto-save).
-- Sempre liberar todos os botões ao perder foco/visibilidade.
-- Manter separação: `ui/`, `emulator/`, `controls/`, `storage/`, `saves/`, `files/`,
-  `pwa/`, `settings/`, `utils/`.
-- Licença do projeto: MIT. Não incorporar código GPL (ex.: `ps2mc.wasm`).
-
 ## Estado final verificado (2026-10-26)
 
 - `npm run check` → exit 0 (verify:emulator → typecheck → 88 unit → build → verify:dist)

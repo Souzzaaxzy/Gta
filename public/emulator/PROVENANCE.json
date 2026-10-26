@@ -1,0 +1,30 @@
+{
+  "note": "Proveniência dos binários do emulador. Não são código deste projeto.",
+  "emulator": {
+    "name": "Play!",
+    "upstream": "https://github.com/jpd002/Play-",
+    "upstreamCommit": "83700b2c31e593bc94e845b4b31b797be84dda59",
+    "license": "BSD-2-Clause",
+    "copyright": "Copyright (c) 2006-2026, Jean-Philip Desjardins",
+    "licenseFile": "LICENSE-PLAY.txt"
+  },
+  "binaries": {
+    "source": "https://github.com/Rickow/lecteur-ps2",
+    "sourceNote": "Repositório GPL-3.0 que redistribui o build web oficial do Play!. Os arquivos Play.js e Play.wasm são o build do Play! (BSD-2-Clause); o wrapper original do autor é oferecido também sob MIT.",
+    "toolchain": "Emscripten 4.0.1",
+    "patches": [
+      "patches/play-lecteur-ps2.patch — expõe saveState/loadState, setResolutionFactor, setFrameLimiter, setDeinterlace, getEeUsage, getIopUsage, getDrawCalls"
+    ],
+    "files": {
+      "Play.js": "Frontend Emscripten do Play! (BSD-2-Clause).",
+      "Play.wasm": "Núcleo de emulação (BSD-2-Clause)."
+    }
+  },
+  "buildInstructions": "Ver docs/EMULATOR-RESEARCH.md, seção \"Reconstruir o núcleo\".",
+  "hashes": {
+    "Play.js": "cbd125cffe6daa039ad10a4154de7de467dcd0f3c22b1309896fcb9a79b32ebc",
+    "Play.wasm": "103cb957f6cc2997560ec82f0101b501c3be954450b8b56751c4f730b08c9a84",
+    "LICENSE-PLAY.txt": "e9089da5950600267bb657503aba6eb59cb679b455c2997d341d83144144daab"
+  },
+  "hashesUpdatedAt": "2026-10-26T13:28:58.269Z"
+}

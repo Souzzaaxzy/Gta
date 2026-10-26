@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1"
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#08080c" />
+    <title>GTA: San Andreas — PlayStation 2 no navegador</title>
+    <meta
+      name="description"
+      content="Jogue Grand Theft Auto: San Andreas de PlayStation 2 no navegador do celular, com o emulador Play! em WebAssembly. Você fornece a imagem do seu próprio disco; nenhum arquivo de jogo é distribuído."
+    />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="GTA SA" />
+    <meta name="format-detection" content="telephone=no" />
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <div id="app" class="app">
+      <!-- Game surface. Kept mounted so the emulator can hold its WebGL context. -->
+      <div class="stage" id="stage">
+        <canvas id="outputCanvas" width="640" height="480" tabindex="0" aria-label="Tela do jogo"></canvas>
+        <div class="stage-scrim" id="stageScrim" aria-hidden="true"></div>
+      </div>
+
+      <!-- Touch controls mount here. -->
+      <div id="touchPadHost"></div>
+
+      <!-- Top bar: only the essentials during play. -->
+      <header class="topbar" id="topbar" hidden>
+        <button class="icon-button" id="btnMenu" type="button" aria-label="Abrir menu">☰</button>
+        <div class="topbar-status">
+          <span id="fpsBadge" class="badge" hidden></span>
+          <span id="netBadge" class="badge" hidden></span>
+          <span id="padBadge" class="badge" hidden></span>
+        </div>
+        <button class="icon-button" id="btnFullscreen" type="button" aria-label="Tela cheia">⛶</button>
+      </header>
+
+      <!-- Home screen. -->
+      <main class="home" id="home">
+        <div class="home-inner">
+          <div class="cover" aria-hidden="true">
+            <div class="cover-art" id="coverArt"></div>
+            <div class="cover-glow"></div>
+          </div>
+
+          <div class="home-copy">
+            <p class="eyebrow">PlayStation 2 · emulador Play! · WebAssembly</p>
+            <h1 class="title">GTA<span class="title-colon">:</span> San Andreas</h1>
+            <p class="subtitle">
+              A versão de PlayStation 2 executada no navegador do seu celular. Você fornece a imagem do disco que já
+              possui. Nenhum arquivo de jogo, BIOS ou conteúdo protegido é baixado ou enviado por este site.
+            </p>
+
+            <div class="status-card" id="statusCard" role="status" aria-live="polite">
+              <div class="status-head">
+                <span class="status-dot" id="statusDot"></span>
+                <span class="status-title" id="statusTitle">Iniciando…</span>
+              </div>
+              <p class="status-detail" id="statusDetail">Verificando o aparelho e os arquivos guardados.</p>
+              <div class="progress" id="progressWrap" hidden>
+                <div class="progress-bar" id="progressBar"></div>
+              </div>
+              <ul class="requirements" id="requirements"></ul>
+            </div>
+
+            <div class="actions" id="actions">
+              <button class="button button-primary" id="btnPrimary" type="button" disabled>INICIAR JOGO</button>
+              <button class="button" id="btnSecondary" type="button">Escolher arquivo do jogo</button>
+            </div>
+
+            <div class="quick-links">
+              <button class="link-button" data-open="settings" type="button">Configurações</button>
+              <button class="link-button" data-open="saves" type="button">Salvamentos</button>
+              <button class="link-button" data-open="controls" type="button">Controles</button>
+              <button class="link-button" data-open="compatibility" type="button">Compatibilidade</button>
+              <button class="link-button" data-open="log" type="button">Registro</button>
+            </div>
+
+            <p class="legal-note">
+              GTA: San Andreas e PlayStation são marcas de seus respectivos donos. Este projeto não é afiliado nem
+              endossado pela Rockstar Games ou pela Sony. Use apenas cópias dos seus próprios discos.
+            </p>
+          </div>
+        </div>
+      </main>
+
+      <!-- Side panel used by every secondary screen. -->
+      <aside class="panel" id="panel" hidden aria-modal="true" role="dialog" aria-labelledby="panelTitle">
+        <div class="panel-sheet">
+          <header class="panel-head">
+            <h2 id="panelTitle">Configurações</h2>
+            <button class="icon-button" id="btnPanelClose" type="button" aria-label="Fechar">✕</button>
+          </header>
+          <div class="panel-body" id="panelBody"></div>
+        </div>
+      </aside>
+
+      <!-- Toast strip for short confirmations. -->
+      <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+      <input type="file" id="fileInput" hidden />
+      <input type="file" id="importInput" hidden />
+    </div>
+  </body>
+</html>

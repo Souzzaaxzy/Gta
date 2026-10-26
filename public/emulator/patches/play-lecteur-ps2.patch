@@ -1,0 +1,157 @@
+diff --git a/Source/gs/GSHandler.cpp b/Source/gs/GSHandler.cpp
+index 57e58ba..3bf53b4 100644
+--- a/Source/gs/GSHandler.cpp
++++ b/Source/gs/GSHandler.cpp
+@@ -414,8 +414,12 @@ void CGSHandler::ResetVBlank()
+ {
+ 	std::lock_guard registerMutexLock(m_registerMutex);
+ 
+-	//Alternate current field
+-	m_nCSR ^= CSR_FIELD;
++	//Alternate current field. Skipping this ("field stabilization") keeps a constant field
++	//so interlaced games stop bobbing the image vertically by one line (anti-tremblement).
++	if(!m_stabilizeField)
++	{
++		m_nCSR ^= CSR_FIELD;
++	}
+ }
+ 
+ void CGSHandler::NotifyEvent(uint32 eventBit)
+diff --git a/Source/gs/GSHandler.h b/Source/gs/GSHandler.h
+index 66bfe59..236380b 100644
+--- a/Source/gs/GSHandler.h
++++ b/Source/gs/GSHandler.h
+@@ -892,6 +892,9 @@ public:
+ 	uint32 GetCrtHSyncFrequency() const;
+ 	bool GetCrtIsInterlaced() const;
+ 	bool GetCrtIsFrameMode() const;
++
++	//Anti-tremblement : quand actif, le champ n'alterne plus (voir ResetVBlank).
++	void SetFieldStabilization(bool enabled) { m_stabilizeField = enabled; }
+ 	DISPLAY_RECT GetDisplayRect(uint64) const;
+ 	DISPLAY_INFO GetCurrentDisplayInfo();
+ 
+@@ -1094,6 +1097,7 @@ protected:
+ 	DELAYED_REGISTER m_nDISPFB2;  //0x12000090
+ 	DELAYED_REGISTER m_nDISPLAY2; //0x120000A0
+ 	uint64 m_nCSR;                //0x12001000
++	bool m_stabilizeField = false; //anti-tremblement : fige le champ (ResetVBlank)
+ 	uint64 m_nIMR;                //0x12001010
+ 	uint64 m_nBUSDIR;             //0x12001040
+ 	uint64 m_nSIGLBLID;           //0x12001080
+diff --git a/Source/ui_js/Main.cpp b/Source/ui_js/Main.cpp
+index 999e24c..2bca320 100644
+--- a/Source/ui_js/Main.cpp
++++ b/Source/ui_js/Main.cpp
+@@ -7,9 +7,13 @@
+ #include "InputProviderEmscripten.h"
+ #include "ui_shared/StatsManager.h"
+ #include "DefaultAppConfig.h"
++#include "app_shared/AppConfig.h"
++#include "PS2VM_Preferences.h"
++#include "gs/GSH_OpenGL/GSH_OpenGL.h"
+ 
+ CPs2VmJs* g_virtualMachine = nullptr;
+ CGSHandler::NewFrameEvent::Connection g_gsNewFrameConnection;
++CPS2VM::NewFrameEvent::Connection g_newFrameConnection;
+ EMSCRIPTEN_WEBGL_CONTEXT_HANDLE g_context = 0;
+ std::shared_ptr<CInputProviderEmscripten> g_inputProvider;
+ CSH_OpenAL* g_soundHandler = nullptr;
+@@ -109,6 +113,8 @@ extern "C" void initVm()
+ 	}
+ 
+ 	g_gsNewFrameConnection = g_virtualMachine->GetGSHandler()->OnNewFrame.Connect(std::bind(&CStatsManager::OnGsNewFrame, &CStatsManager::GetInstance(), std::placeholders::_1));
++	//Instrumentation : alimente CStatsManager en utilisation CPU (EE/IOP) à chaque frame VM.
++	g_newFrameConnection = g_virtualMachine->OnNewFrame.Connect(std::bind(&CStatsManager::OnNewFrame, &CStatsManager::GetInstance(), g_virtualMachine));
+ 
+ 	EMSCRIPTEN_RESULT result = EMSCRIPTEN_RESULT_SUCCESS;
+ 
+@@ -134,11 +140,74 @@ int getFrames()
+ 	return CStatsManager::GetInstance().GetFrames();
+ }
+ 
++//Instrumentation : nombre d'appels de dessin GS cumulés (proxy de la charge GS).
++int getDrawCalls()
++{
++	return CStatsManager::GetInstance().GetDrawCalls();
++}
++
++//Instrumentation : % d'occupation du coeur EE (EE+VU). ~100% => on est CPU-bound.
++float getEeUsage()
++{
++	auto info = CStatsManager::GetInstance().GetCpuUtilisationInfo();
++	return CStatsManager::ComputeCpuUsageRatio(info.eeIdleTicks, info.eeTotalTicks);
++}
++
++//Instrumentation : % d'occupation du coeur IOP.
++float getIopUsage()
++{
++	auto info = CStatsManager::GetInstance().GetCpuUtilisationInfo();
++	return CStatsManager::ComputeCpuUsageRatio(info.iopIdleTicks, info.iopTotalTicks);
++}
++
+ void clearStats()
+ {
+ 	CStatsManager::GetInstance().ClearStats();
+ }
+ 
++//---- Sauvegardes d'état (save states) --------------------------------------
++//Le JS pilote le chemin dans MEMFS : pour sauvegarder il appelle saveState(path)
++//puis lit les octets via Module.FS ; pour charger il écrit d'abord le fichier
++//via Module.FS puis appelle loadState(path).
++bool saveState(std::string path)
++{
++	if(!g_virtualMachine) return false;
++	try { return g_virtualMachine->SaveState(path).get(); }
++	catch(...) { return false; }
++}
++
++bool loadState(std::string path)
++{
++	if(!g_virtualMachine) return false;
++	try { return g_virtualMachine->LoadState(path).get(); }
++	catch(...) { return false; }
++}
++
++//---- Réglages (à appeler AVANT initVm pour la résolution) ------------------
++//Facteur de résolution interne du renderer OpenGL (1 = natif ; 2 = 2x, plus net
++//mais plus lourd). Le renderer ne descend pas sous le natif.
++void setResolutionFactor(int factor)
++{
++	if(factor < 1) factor = 1;
++	CAppConfig::GetInstance().SetPreferenceInteger(PREF_CGSH_OPENGL_RESOLUTION_FACTOR, factor);
++}
++
++//Limiteur de framerate (true = calé sur la fréquence de rafraîchissement).
++void setFrameLimiter(bool enabled)
++{
++	CAppConfig::GetInstance().SetPreferenceBoolean(PREF_PS2_LIMIT_FRAMERATE, enabled);
++}
++
++//Anti-tremblement (expérimental) : fige le champ d'entrelacement pour supprimer le
++//bob vertical d'1 ligne des jeux entrelacés. Réglable à chaud (après initVm).
++void setDeinterlace(bool enabled)
++{
++	if(g_virtualMachine && g_virtualMachine->GetGSHandler())
++	{
++		g_virtualMachine->GetGSHandler()->SetFieldStabilization(enabled);
++	}
++}
++
+ EMSCRIPTEN_BINDINGS(Play)
+ {
+ 	using namespace emscripten;
+@@ -146,5 +215,13 @@ EMSCRIPTEN_BINDINGS(Play)
+ 	function("bootElf", &bootElf);
+ 	function("bootDiscImage", &bootDiscImage);
+ 	function("getFrames", &getFrames);
++	function("getDrawCalls", &getDrawCalls);
++	function("getEeUsage", &getEeUsage);
++	function("getIopUsage", &getIopUsage);
+ 	function("clearStats", &clearStats);
++	function("saveState", &saveState);
++	function("loadState", &loadState);
++	function("setResolutionFactor", &setResolutionFactor);
++	function("setFrameLimiter", &setFrameLimiter);
++	function("setDeinterlace", &setDeinterlace);
+ }

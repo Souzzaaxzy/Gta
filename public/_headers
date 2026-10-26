@@ -1,0 +1,44 @@
+# Cloudflare Pages headers.
+#
+# The emulator core is a threaded WebAssembly build, so the document must be
+# cross-origin isolated for SharedArrayBuffer to exist. Without these three headers the
+# core refuses to start — see docs/CLOUDFLARE-DEPLOYMENT.md.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: same-origin
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()
+  X-Frame-Options: DENY
+
+# Correct MIME type for WebAssembly. A wrong type makes the browser refuse to
+# instantiate the module ("Unexpected response MIME type").
+/emulator/Play.wasm
+  Content-Type: application/wasm
+  Cache-Control: public, max-age=31536000, immutable
+  Cross-Origin-Resource-Policy: same-origin
+
+/emulator/Play.js
+  Content-Type: text/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000, immutable
+  Cross-Origin-Resource-Policy: same-origin
+
+# Hashed build output never changes.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The service worker must always be revalidated, otherwise updates never arrive.
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/precache-manifest.json
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# The shell itself should be revalidated so a new deploy is picked up.
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: public, max-age=3600

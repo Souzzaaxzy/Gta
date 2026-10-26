@@ -1,0 +1,66 @@
+/* Design tokens.
+   Palette is dark and console-inspired: near-black background, a warm ink for text, and a
+   single amber accent that reads as a retro console indicator without copying any game art. */
+:root {
+  color-scheme: dark;
+
+  --bg: #08080c;
+  --bg-raised: #101018;
+  --bg-sunken: #050508;
+  --bg-overlay: rgba(4, 4, 8, 0.82);
+
+  --ink: #ece7dc;
+  --ink-muted: #a49e91;
+  --ink-faint: #6d6862;
+
+  --line: rgba(236, 231, 220, 0.12);
+  --line-strong: rgba(236, 231, 220, 0.24);
+
+  --accent: #e8a33d;
+  --accent-soft: rgba(232, 163, 61, 0.16);
+  --accent-ink: #16100a;
+
+  --ok: #5fd39a;
+  --warn: #e8a33d;
+  --danger: #f0736a;
+  --info: #7fb3e8;
+
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --shadow-soft: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-lift: 0 20px 48px rgba(0, 0, 0, 0.65);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  --transition-fast: 120ms ease;
+  --transition: 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

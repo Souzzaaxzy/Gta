@@ -1,0 +1,68 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.vite/
+
+# Test output
+test-results/
+playwright-report/
+coverage/
+blob-report/
+.playwright/
+
+# Environment and secrets — never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+id_rsa*
+
+# User data — must never enter the repository.
+# The game disc, memory cards and save states are the user's own files.
+*.iso
+*.cso
+*.isz
+*.chd
+*.cue
+*.mds
+*.mdf
+*.bin
+*.elf
+*.ps2
+*.vmc
+*.mcd
+*.state
+*.7z
+*.zip
+!public/**/*.zip
+games/
+roms/
+bios/
+BIOS/
+*.ROM
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Temporary files created during development
+*.tmp
+*.tmp.*
+probe.tmp.mjs
+
+GT4S4PTBM0DM3N.rar
